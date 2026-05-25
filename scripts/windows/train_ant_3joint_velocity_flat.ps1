@@ -10,6 +10,7 @@ $workspace = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $isaacLabRoot = Join-Path $workspace "IsaacLab"
 $pythonExe = Join-Path $workspace "env_isaaclab\Scripts\python.exe"
 $trainScript = Join-Path $isaacLabRoot "scripts\reinforcement_learning\rl_games\train.py"
+$assetUsd = Join-Path $workspace ".isaaclab_cache\ant_3joint\ant_3joint.usda"
 
 if ([string]::IsNullOrWhiteSpace($ExperimentName)) {
     $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
@@ -22,6 +23,10 @@ if (!(Test-Path -LiteralPath $pythonExe)) {
 
 if (!(Test-Path -LiteralPath $trainScript)) {
     throw "Training script not found: $trainScript"
+}
+
+if (!(Test-Path -LiteralPath $assetUsd)) {
+    throw "Project asset not found: $assetUsd`nRun .\\scripts\\setup\\init_workspace.ps1 -BuildProjectAssets first."
 }
 
 $env:OMNI_KIT_ACCEPT_EULA = "YES"

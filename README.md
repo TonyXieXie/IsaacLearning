@@ -40,6 +40,8 @@ Create `TonyXieXie/IsaacLab` on GitHub before the first push from this machine.
 4. If `env_isaaclab\Scripts\python.exe` does not exist yet, install the IsaacLab environment from `IsaacLab\isaaclab.bat`.
 5. Launch training with `.\scripts\windows\train_ant_3joint_velocity_flat.cmd`
 
+For a closer-to-identical Windows setup, use [docs/windows-training-setup.md](/D:/AI/Issac/docs/windows-training-setup.md).
+
 ## Local Runtime State
 
 Training outputs, checkpoints, caches, and the Python environment remain intentionally local.
