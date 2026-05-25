@@ -1,0 +1,36 @@
+# Local editor and tool state
+.codex_tmp/
+.playwright-mcp/
+.vscode/
+.idea/
+
+# Python environments
+env/
+venv/
+.venv/
+env_isaaclab/
+
+# Build caches and generated assets
+.isaaclab_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Runtime outputs
+logs/
+outputs/
+*.log
+*.err.log
+*.stdout.log
+*.stderr.log
+*.pid.txt
+
+# Large or machine-local generated artifacts
+*.pth
+*.pt
+*.ckpt
+*.tfevents*
+
+# IsaacLab child repository admin file
+IsaacLab/.git

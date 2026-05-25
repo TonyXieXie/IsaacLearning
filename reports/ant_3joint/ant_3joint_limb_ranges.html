@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ant 3-Joint Limb Layout</title>
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --panel: rgba(255, 255, 255, 0.72);
+      --ink: #1d2a2f;
+      --muted: #52626a;
+      --line: rgba(29, 42, 47, 0.18);
+      --accent: #145c63;
+      --accent-soft: rgba(20, 92, 99, 0.14);
+      --warn: #cc7a2f;
+      --good: #2a6c46;
+      --torso: #f1c97a;
+      --leg-a: #db6b59;
+      --leg-b: #3c84a6;
+      --leg-c: #4f8d62;
+      --leg-d: #8b5ca5;
+      --shadow: 0 18px 50px rgba(33, 43, 48, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(20, 92, 99, 0.10), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(204, 122, 47, 0.09), transparent 30%),
+        linear-gradient(180deg, #fbf8f2 0%, var(--bg) 100%);
+    }
+
+    .page {
+      width: min(1220px, calc(100vw - 32px));
+      margin: 20px auto 48px;
+    }
+
+    .hero,
+    .panel {
+      background: var(--panel);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 28px 30px 24px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: 32px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p,
+    .note,
+    .source {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(29, 42, 47, 0.08);
+    }
+
+    .stat .label {
+      display: block;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat strong {
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 21px;
+    }
+
+    .panel p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .visual-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+    }
+
+    .svg-wrap {
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(250, 247, 241, 0.86));
+      overflow: hidden;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border-radius: 20px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--line);
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+
+    .card-head h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      background: rgba(29, 42, 47, 0.06);
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .joint {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(29, 42, 47, 0.08);
+    }
+
+    .joint:first-of-type {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .joint-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .joint-row strong {
+      font-size: 15px;
+    }
+
+    .axis {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .bar {
+      position: relative;
+      height: 16px;
+      border-radius: 999px;
+      background: rgba(29, 42, 47, 0.08);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(29, 42, 47, 0.10), rgba(29, 42, 47, 0.04)),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0 18px,
+          rgba(255, 255, 255, 0.28) 18px 20px
+        );
+    }
+
+    .marker {
+      position: absolute;
+      top: 50%;
+      width: 4px;
+      height: 22px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      background: var(--ink);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9);
+    }
+
+    .marker::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -8px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      background: currentColor;
+    }
+
+    .joint-value {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+    }
+
+    .summary-table th,
+    .summary-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(29, 42, 47, 0.08);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .summary-table th {
+      background: rgba(29, 42, 47, 0.05);
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .summary-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(29, 42, 47, 0.06);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .side-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .family-panel {
+      border-radius: 20px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--line);
+    }
+
+    .family-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .family-head h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .family-head p {
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .side-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .side-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(29, 42, 47, 0.06);
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .svg-caption {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .note-list {
+      display: grid;
+      gap: 10px;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    code {
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 0.95em;
+      color: var(--accent);
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .visual-grid,
+      .side-grid,
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(100vw - 18px, 1220px);
+        margin: 10px auto 28px;
+      }
+
+      .hero,
+      .panel {
+        padding: 18px;
+        border-radius: 18px;
+      }
+
+      .hero h1 {
+        font-size: 26px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="stack">
+          <div>
+            <h1>Ant 3-Joint 四肢结构与关节活动范围</h1>
+            <p>
+              这张图基于 <code>robot.xml</code> 里的关节层级、<code>range</code> 和
+              <code>init_qpos</code>/<code>ant_3joint.py</code> 的初始角度生成。
+              上图重点表示四条腿从 torso 发出的分支结构和 <code>hip</code> 的平面扫动扇区；
+              下方关节量程条显示每条腿在初始状态下各关节处于允许区间的什么位置。
+            </p>
+          </div>
+          <div class="stats">
+            <div class="stat">
+              <span class="label">Legs</span>
+              <strong>4</strong>
+            </div>
+            <div class="stat">
+              <span class="label">Joints / Leg</span>
+              <strong>3</strong>
+            </div>
+            <div class="stat">
+              <span class="label">Actuated</span>
+              <strong>12</strong>
+            </div>
+            <div class="stat">
+              <span class="label">Hip Yaw Range</span>
+              <strong>±30°</strong>
+            </div>
+          </div>
+        </div>
+        <div class="stack">
+          <p class="note">
+            需要注意的是：<code>ankle</code> 和 <code>foot</code> 的 hinge 轴不是竖直轴，
+            而是各自局部坐标中的斜轴，所以它们不适合直接画成和 <code>hip</code> 一样的平面 yaw 扫扇。
+            这里把它们画成“局部关节量程”，避免把 3D 铰链误读成 2D 转盘。
+          </p>
+          <p class="source">
+            数据源：
+            <code>assets/mjcf/ant_3joint/robot.xml</code>，
+            <code>IsaacLab/source/isaaclab_assets/isaaclab_assets/robots/ant_3joint.py</code>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="visual-grid">
+      <section class="panel">
+        <h2>四肢拓扑与初始分支方向</h2>
+        <p>
+          图中每条腿都由 <code>hip → ankle → foot</code> 三个关节串联。
+          实线表示按语义命名摆放的初始腿向，半透明扇区表示每条腿的 <code>hip</code> 可在初始方向左右各摆动 30°。
+        </p>
+        <div class="svg-wrap">
+          <svg id="topView" viewBox="0 0 780 780" aria-label="top view layout"></svg>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="color: var(--accent);"></i>Hip 可摆动扇区</span>
+          <span><i class="dot" style="color: var(--warn);"></i>初始关节锚点</span>
+          <span><i class="dot" style="color: var(--ink);"></i>初始腿向示意</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>结构摘要</h2>
+        <p>
+          这里把每条腿的局部层级、关节轴和初始角度整理成表，方便对照 HTML 图。
+        </p>
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Leg</th>
+              <th>Chain</th>
+              <th>Initial</th>
+            </tr>
+          </thead>
+          <tbody id="summaryRows"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <section class="panel" style="margin-top: 18px;">
+      <h2>局部侧视图：腿平面中的折叠范围</h2>
+      <p>
+        这不是世界坐标下统一的侧视，而是把每条腿投影到自己的局部摆动平面 <code>(u, z)</code> 里看。
+        顶视图负责说明 <code>hip</code> 的平面扫动；这里单独展示 <code>ankle</code> 与 <code>foot</code> 如何让腿抬起、下压和回收。
+      </p>
+      <div class="side-grid" id="sideViewGrid"></div>
+      <div class="legend">
+        <span><i class="dot" style="color: var(--ink);"></i>粗线 = 初始姿态</span>
+        <span><i class="dot" style="color: var(--accent);"></i>淡线 = 极限角组合</span>
+        <span><i class="dot" style="color: var(--warn);"></i>黄点 = torso 到 hip 的固定挂点</span>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+      <h2>每条腿的关节量程与初始角度</h2>
+      <p>
+        每个条带都表示该关节在 XML 中的允许角度范围，黑色标记是当前初始角度。
+        这里用度数展示，和 <code>robot.xml</code> 的 <code>range</code> 一致。
+      </p>
+      <div class="cards" id="legCards"></div>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+      <h2>解读说明</h2>
+      <div class="note-list">
+        <div>1. <code>hip_1..4</code> 的关节轴都是 <code>(0, 0, 1)</code>，所以它们是真正的平面 yaw，自然可以画成扇形活动区。</div>
+        <div>2. <code>ankle</code> 和 <code>foot</code> 的轴分别是诸如 <code>(-1, 1, 0)</code>、<code>(1, 1, 0)</code> 这类水平斜轴，它们控制的是各条腿局部平面里的折叠/伸展，不是围绕 torso 的平面旋转。</div>
+        <div>3. 前左和右后的 <code>foot</code> 初值是 <code>+121°</code>；前右和左后的 <code>foot</code> 初值是 <code>-121°</code>。这是镜像腿在 XML 里用不同轴方向与不同角度符号实现对称。</div>
+        <div>4. 如果后面你要做 gait timer 或脚高奖励，建议把这张图和 <code>ContactSensor</code>、<code>body_pos_w</code> 一起看：结构告诉你关节语义，传感器告诉你实际接触与抬脚状态。</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const legData = [
+      {
+        key: "FL",
+        name: "Front Left",
+        color: getComputedStyle(document.documentElement).getPropertyValue("--leg-a").trim(),
+        nominalDeg: -135,
+        anchor: [262, 262],
+        chain: ["front_left_leg", "aux_1", "front_left_shank", "front_left_foot"],
+        joints: [
+          { name: "hip_1", axis: "(0, 0, 1)", range: [-30, 30], init: 0 },
+          { name: "ankle_1", axis: "(-1, 1, 0)", range: [-91, -16], init: -31 },
+          { name: "foot_1", axis: "(-1, 1, 0)", range: [91, 151], init: 121 }
+        ]
+      },
+      {
+        key: "FR",
+        name: "Front Right",
+        color: getComputedStyle(document.documentElement).getPropertyValue("--leg-b").trim(),
+        nominalDeg: -45,
+        anchor: [518, 262],
+        chain: ["front_right_leg", "aux_2", "front_right_shank", "front_right_foot"],
+        joints: [
+          { name: "hip_2", axis: "(0, 0, 1)", range: [-30, 30], init: 0 },
+          { name: "ankle_2", axis: "(-1, -1, 0)", range: [-91, -16], init: -31 },
+          { name: "foot_2", axis: "(1, 1, 0)", range: [-151, -91], init: -121 }
+        ]
+      },
+      {
+        key: "LB",
+        name: "Left Back",
+        color: getComputedStyle(document.documentElement).getPropertyValue("--leg-c").trim(),
+        nominalDeg: 135,
+        anchor: [262, 518],
+        chain: ["back_leg", "aux_3", "left_back_shank", "left_back_foot"],
+        joints: [
+          { name: "hip_3", axis: "(0, 0, 1)", range: [-30, 30], init: 0 },
+          { name: "ankle_3", axis: "(1, -1, 0)", range: [-91, -16], init: -31 },
+          { name: "foot_3", axis: "(-1, 1, 0)", range: [-151, -91], init: -121 }
+        ]
+      },
+      {
+        key: "RB",
+        name: "Right Back",
+        color: getComputedStyle(document.documentElement).getPropertyValue("--leg-d").trim(),
+        nominalDeg: 45,
+        anchor: [518, 518],
+        chain: ["right_back_leg", "aux_4", "right_back_shank", "right_back_foot"],
+        joints: [
+          { name: "hip_4", axis: "(0, 0, 1)", range: [-30, 30], init: 0 },
+          { name: "ankle_4", axis: "(1, 1, 0)", range: [-91, -16], init: -31 },
+          { name: "foot_4", axis: "(1, 1, 0)", range: [91, 151], init: 121 }
+        ]
+      }
+    ];
+
+    const lengths = [96, 112, 150];
+    const sideLengths = {
+      mount: Math.hypot(0.16, 0.16),
+      upper: Math.hypot(0.18, 0.18),
+      lower: Math.hypot(0.24, 0.24),
+      foot: Math.hypot(0.40, 0.40)
+    };
+    const sideFamilies = [
+      {
+        key: "FL-RB",
+        title: "FL / RB local side plane",
+        description: "前左与后右的局部腿平面折叠轮廓直接由原始 joint angle 给出。",
+        color: legData[0].color,
+        legs: [
+          { key: "FL", color: legData[0].color },
+          { key: "RB", color: legData[3].color }
+        ],
+        ankle: legData[0].joints[1],
+        foot: legData[0].joints[2],
+        footAxisSign: 1
+      },
+      {
+        key: "FR-LB",
+        title: "FR / LB local side plane",
+        description: "前右与后左虽然 foot angle 是负号，但因为 foot hinge axis 反向，映射到局部腿平面后与 FL / RB 一致。",
+        color: legData[1].color,
+        legs: [
+          { key: "FR", color: legData[1].color },
+          { key: "LB", color: legData[2].color }
+        ],
+        ankle: legData[1].joints[1],
+        foot: legData[1].joints[2],
+        footAxisSign: -1
+      }
+    ];
+
+    function polar(cx, cy, radius, deg) {
+      const rad = (deg * Math.PI) / 180;
+      return [cx + radius * Math.cos(rad), cy + radius * Math.sin(rad)];
+    }
+
+    function wedgePath(cx, cy, innerR, outerR, startDeg, endDeg) {
+      const [x1, y1] = polar(cx, cy, outerR, startDeg);
+      const [x2, y2] = polar(cx, cy, outerR, endDeg);
+      const [x3, y3] = polar(cx, cy, innerR, endDeg);
+      const [x4, y4] = polar(cx, cy, innerR, startDeg);
+      const largeArc = Math.abs(endDeg - startDeg) > 180 ? 1 : 0;
+      return [
+        `M ${x1} ${y1}`,
+        `A ${outerR} ${outerR} 0 ${largeArc} 1 ${x2} ${y2}`,
+        `L ${x3} ${y3}`,
+        `A ${innerR} ${innerR} 0 ${largeArc} 0 ${x4} ${y4}`,
+        "Z"
+      ].join(" ");
+    }
+
+    function rangeBar(min, max, init, color) {
+      const pct = ((init - min) / (max - min)) * 100;
+      return `
+        <div class="bar">
+          <div class="bar-fill" style="background-color: ${color}22;"></div>
+          <div class="marker" style="left: ${pct}%; color: ${color};"></div>
+        </div>
+        <div class="range-labels">
+          <span>${min}°</span>
+          <span>${max}°</span>
+        </div>
+        <div class="joint-value">init = ${init}°</div>
+      `;
+    }
+
+    function lerp(start, end, t) {
+      return start + (end - start) * t;
+    }
+
+    function sidePose(ankleDeg, footDeg, footAxisSign = 1) {
+      const a2 = (-ankleDeg * Math.PI) / 180;
+      const a3 = (-(ankleDeg + footAxisSign * footDeg) * Math.PI) / 180;
+
+      const p0 = [0, 0];
+      const p1 = [sideLengths.mount, 0];
+      const p2 = [sideLengths.mount + sideLengths.upper, 0];
+      const p3 = [
+        p2[0] + sideLengths.lower * Math.cos(a2),
+        p2[1] + sideLengths.lower * Math.sin(a2)
+      ];
+      const p4 = [
+        p3[0] + sideLengths.foot * Math.cos(a3),
+        p3[1] + sideLengths.foot * Math.sin(a3)
+      ];
+
+      return [p0, p1, p2, p3, p4];
+    }
+
+    function sidePoint(point, scale, originX, originY) {
+      return [originX + point[0] * scale, originY - point[1] * scale];
+    }
+
+    function sidePath(points, scale, originX, originY) {
+      return points.map((point, index) => {
+        const [x, y] = sidePoint(point, scale, originX, originY);
+        return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+      }).join(" ");
+    }
+
+    function renderSideSvg(family) {
+      const width = 560;
+      const height = 320;
+      const originX = 54;
+      const originY = 226;
+      const scale = 210;
+      const axisStroke = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim();
+      const boundaryCombos = [
+        [family.ankle.range[0], family.foot.range[0]],
+        [family.ankle.range[0], family.foot.range[1]],
+        [family.ankle.range[1], family.foot.range[0]],
+        [family.ankle.range[1], family.foot.range[1]]
+      ];
+
+      const tipDots = [];
+      for (let ai = 0; ai < 7; ai += 1) {
+        const ankle = lerp(family.ankle.range[0], family.ankle.range[1], ai / 6);
+        for (let fi = 0; fi < 7; fi += 1) {
+          const foot = lerp(family.foot.range[0], family.foot.range[1], fi / 6);
+          const toe = sidePose(ankle, foot, family.footAxisSign).at(-1);
+          const [x, y] = sidePoint(toe, scale, originX, originY);
+          tipDots.push(`<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3.2" fill="${family.color}" opacity="0.17"></circle>`);
+        }
+      }
+
+      const boundaryPaths = boundaryCombos.map(([ankle, foot], index) => {
+        const pose = sidePose(ankle, foot, family.footAxisSign);
+        const dash = index % 2 === 0 ? "0" : "10 8";
+        return `
+          <path d="${sidePath(pose.slice(1), scale, originX, originY)}"
+            fill="none"
+            stroke="${family.color}"
+            stroke-width="4"
+            stroke-opacity="0.24"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-dasharray="${dash}"></path>
+        `;
+      }).join("");
+
+      const pose = sidePose(family.ankle.init, family.foot.init, family.footAxisSign);
+      const torso = sidePoint(pose[0], scale, originX, originY);
+      const hip = sidePoint(pose[1], scale, originX, originY);
+      const knee = sidePoint(pose[2], scale, originX, originY);
+      const ankle = sidePoint(pose[3], scale, originX, originY);
+      const toe = sidePoint(pose[4], scale, originX, originY);
+
+      return `
+        <svg viewBox="0 0 ${width} ${height}" aria-label="${family.key} side view">
+          <rect x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
+          <g opacity="0.08" stroke="${axisStroke}" stroke-width="1">
+            <line x1="32" y1="${originY}" x2="${width - 24}" y2="${originY}"></line>
+            <line x1="${originX}" y1="26" x2="${originX}" y2="${height - 30}"></line>
+            <line x1="32" y1="68" x2="${width - 24}" y2="68"></line>
+          </g>
+          <g font-size="12" fill="var(--muted)">
+            <text x="${width - 34}" y="${originY - 8}" text-anchor="end">+u</text>
+            <text x="${originX + 8}" y="38">+z</text>
+            <text x="${originX - 4}" y="${originY + 18}" text-anchor="end">0</text>
+            <text x="${originX}" y="${originY + 36}" text-anchor="middle">torso center</text>
+            <text x="${hip[0]}" y="${hip[1] + 36}" text-anchor="middle">hip mount</text>
+          </g>
+          <path d="M ${torso[0].toFixed(2)} ${torso[1].toFixed(2)} L ${hip[0].toFixed(2)} ${hip[1].toFixed(2)}"
+            fill="none"
+            stroke="var(--warn)"
+            stroke-width="7"
+            stroke-linecap="round"
+            stroke-dasharray="8 7"></path>
+          ${boundaryPaths}
+          <g>
+            ${tipDots.join("")}
+          </g>
+          <path d="${sidePath(pose.slice(1), scale, originX, originY)}"
+            fill="none"
+            stroke="${family.color}"
+            stroke-width="7"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+          <circle cx="${torso[0].toFixed(2)}" cy="${torso[1].toFixed(2)}" r="6" fill="var(--ink)"></circle>
+          <circle cx="${hip[0].toFixed(2)}" cy="${hip[1].toFixed(2)}" r="7" fill="var(--warn)" stroke="white" stroke-width="3"></circle>
+          <circle cx="${knee[0].toFixed(2)}" cy="${knee[1].toFixed(2)}" r="6" fill="white" stroke="${family.color}" stroke-width="3"></circle>
+          <circle cx="${ankle[0].toFixed(2)}" cy="${ankle[1].toFixed(2)}" r="6" fill="white" stroke="${family.color}" stroke-width="3"></circle>
+          <circle cx="${toe[0].toFixed(2)}" cy="${toe[1].toFixed(2)}" r="6" fill="${family.color}" stroke="white" stroke-width="3"></circle>
+        </svg>
+      `;
+    }
+
+    function drawTopView() {
+      const svg = document.getElementById("topView");
+      const centerX = 390;
+      const centerY = 390;
+
+      const pieces = [
+        `<rect x="0" y="0" width="780" height="780" fill="transparent"></rect>`,
+        `<g opacity="0.08" stroke="${getComputedStyle(document.documentElement).getPropertyValue("--ink").trim()}" stroke-width="1">`,
+      ];
+
+      for (let i = 90; i <= 690; i += 60) {
+        pieces.push(`<line x1="${i}" y1="90" x2="${i}" y2="690"></line>`);
+        pieces.push(`<line x1="90" y1="${i}" x2="690" y2="${i}"></line>`);
+      }
+      pieces.push(`</g>`);
+
+      pieces.push(`
+        <g>
+          <circle cx="${centerX}" cy="${centerY}" r="86" fill="var(--torso)" stroke="var(--ink)" stroke-width="2.5"></circle>
+          <circle cx="${centerX}" cy="${centerY}" r="14" fill="var(--ink)"></circle>
+          <text x="${centerX}" y="${centerY - 108}" text-anchor="middle" font-size="13" fill="var(--muted)">torso sphere</text>
+        </g>
+      `);
+
+      legData.forEach((leg) => {
+        const [ax, ay] = leg.anchor;
+        const hip = leg.joints[0];
+        const sector = wedgePath(ax, ay, 28, 118, leg.nominalDeg + hip.range[0], leg.nominalDeg + hip.range[1]);
+
+        const p1 = polar(ax, ay, lengths[0], leg.nominalDeg);
+        const p2 = polar(ax, ay, lengths[0] + lengths[1], leg.nominalDeg);
+        const p3 = polar(ax, ay, lengths[0] + lengths[1] + lengths[2], leg.nominalDeg);
+        const label = polar(ax, ay, 165, leg.nominalDeg);
+
+        pieces.push(`
+          <g>
+            <path d="${sector}" fill="${leg.color}22" stroke="${leg.color}" stroke-width="1.5"></path>
+            <line x1="${centerX}" y1="${centerY}" x2="${ax}" y2="${ay}" stroke="${leg.color}" stroke-width="6" stroke-linecap="round"></line>
+            <circle cx="${ax}" cy="${ay}" r="8" fill="var(--warn)" stroke="white" stroke-width="3"></circle>
+            <line x1="${ax}" y1="${ay}" x2="${p1[0]}" y2="${p1[1]}" stroke="${leg.color}" stroke-width="9" stroke-linecap="round"></line>
+            <line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="${leg.color}" stroke-width="7" stroke-linecap="round" opacity="0.82"></line>
+            <line x1="${p2[0]}" y1="${p2[1]}" x2="${p3[0]}" y2="${p3[1]}" stroke="${leg.color}" stroke-width="5.5" stroke-linecap="round" opacity="0.64"></line>
+            <circle cx="${p1[0]}" cy="${p1[1]}" r="6" fill="white" stroke="${leg.color}" stroke-width="3"></circle>
+            <circle cx="${p2[0]}" cy="${p2[1]}" r="6" fill="white" stroke="${leg.color}" stroke-width="3"></circle>
+            <circle cx="${p3[0]}" cy="${p3[1]}" r="6" fill="${leg.color}" stroke="white" stroke-width="3"></circle>
+            <text x="${label[0]}" y="${label[1]}" text-anchor="middle" font-size="13" font-weight="700" fill="${leg.color}">${leg.key}</text>
+          </g>
+        `);
+      });
+
+      pieces.push(`
+        <g font-size="12" fill="var(--muted)" text-anchor="middle">
+          <text x="${centerX}" y="46">front</text>
+          <text x="${centerX}" y="742">back</text>
+        </g>
+      `);
+
+      svg.innerHTML = pieces.join("");
+    }
+
+    function populateCards() {
+      const cards = document.getElementById("legCards");
+      cards.innerHTML = legData.map((leg) => {
+        const jointsHtml = leg.joints.map((joint) => `
+          <div class="joint">
+            <div class="joint-row">
+              <strong>${joint.name}</strong>
+              <span class="axis">axis ${joint.axis}</span>
+            </div>
+            ${rangeBar(joint.range[0], joint.range[1], joint.init, leg.color)}
+          </div>
+        `).join("");
+
+        return `
+          <article class="card">
+            <div class="card-head">
+              <h3>${leg.name}</h3>
+              <span class="chip" style="color:${leg.color}">
+                <i class="dot"></i>${leg.key}
+              </span>
+            </div>
+            ${jointsHtml}
+          </article>
+        `;
+      }).join("");
+    }
+
+    function populateSideViews() {
+      const grid = document.getElementById("sideViewGrid");
+      grid.innerHTML = sideFamilies.map((family) => {
+        const tags = family.legs.map((leg) => `
+          <span class="side-tag">
+            <i class="dot" style="color:${leg.color};"></i>${leg.key}
+          </span>
+        `).join("");
+
+        return `
+          <article class="family-panel">
+            <div class="family-head">
+              <div>
+                <h3>${family.title}</h3>
+                <p>${family.description}</p>
+              </div>
+              <div class="side-tags">${tags}</div>
+            </div>
+            <div class="svg-wrap">
+              ${renderSideSvg(family)}
+            </div>
+            <div class="svg-caption">
+              ankle range = ${family.ankle.range[0]}° .. ${family.ankle.range[1]}°，
+              foot range = ${family.foot.range[0]}° .. ${family.foot.range[1]}°，
+              散点是对 joint range 采样后的脚尖工作区。
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function populateSummaryTable() {
+      const rows = document.getElementById("summaryRows");
+      rows.innerHTML = legData.map((leg) => {
+        const chain = leg.chain.join(" → ");
+        const init = leg.joints.map((joint) => `${joint.name}: ${joint.init}°`).join("<br>");
+        return `
+          <tr>
+            <td><strong style="color:${leg.color}">${leg.name}</strong></td>
+            <td><code>${chain}</code></td>
+            <td>${init}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    drawTopView();
+    populateCards();
+    populateSideViews();
+    populateSummaryTable();
+  </script>
+</body>
+</html>

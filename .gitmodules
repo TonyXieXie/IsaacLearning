@@ -1,0 +1,4 @@
+[submodule "IsaacLab"]
+	path = IsaacLab
+	url = git@github.com:TonyXieXie/IsaacLab.git
+	branch = main
